@@ -19,6 +19,12 @@ func New(path string) DeviceManager {
 	return dm
 }
 
+// Single is a manager holding exactly one device, so GetRandomDevice always
+// returns it. The server uses it when a request names its own device.
+func Single(d Device) DeviceManager {
+	return DeviceManager{devices: []Device{d}}
+}
+
 func (dm *DeviceManager) GetRandomDevice() Device {
 	if len(dm.devices) == 1 {
 		return dm.devices[0]

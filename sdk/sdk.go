@@ -26,8 +26,8 @@ import (
 	"time"
 	"unicode"
 
-	http "github.com/bogdanfinn/fhttp"
 	"github.com/JulianKnodt/vector"
+	http "github.com/bogdanfinn/fhttp"
 	"github.com/google/uuid"
 )
 

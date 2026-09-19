@@ -40,13 +40,15 @@ func NewStable(app, lang string, ch bool, powURL string, dmgr dm.DeviceManager) 
 	}
 }
 
-func (bm *BotManager) GetAndroidId() string          { return bm.device.AndroidID }
-func (bm *BotManager) GetDevice() dm.Device          { return bm.device }
-func (bm *BotManager) GetPowToken() string           { return sdk.RandomHex(64) } // unchanged
+func (bm *BotManager) GetAndroidId() string            { return bm.device.AndroidID }
+func (bm *BotManager) GetDevice() dm.Device            { return bm.device }
+func (bm *BotManager) GetPowToken() string             { return sdk.RandomHex(64) } // unchanged
 func (bm *BotManager) GetPowResponse() (string, error) { return sdk.SolvePow(bm.challengeURL) }
 
 // ---------------------------------------------------------------------
-//                             Sensor Logic
+//
+//	Sensor Logic
+//
 // ---------------------------------------------------------------------
 func (bm *BotManager) GenerateSensorData() (string, error) {
 	var data []sdk.Pair
@@ -114,17 +116,19 @@ func (bm *BotManager) generateTouch() (tact string, velocity, steps int) {
 func (bm *BotManager) GetSystemInfo() string     { return sdk.SystemInfo(bm.device) }
 func (bm *BotManager) GetEventListeners() string { return sdk.EventListeners() }
 func (bm *BotManager) GetBackgroundEvents() string {
-	if s := sdk.BackgroundEvents(); s != "" { return s }
+	if s := sdk.BackgroundEvents(); s != "" {
+		return s
+	}
 	return "2,0;3,100;"
 }
-func (bm *BotManager) GetPrefBench() string      { return sdk.PrefBench() }
+func (bm *BotManager) GetPrefBench() string { return sdk.PrefBench() }
 func (bm *BotManager) GetVerifyStats(vel, steps int) string {
 	return fmt.Sprintf("%d,%d,0,0,0,0,%d", vel, steps, sdk.RandomInt(5, 14))
 }
-func (bm *BotManager) GetSensorCal() string   { return sdk.SensorCal() }
-func (bm *BotManager) GetGyroDrift() string   { return sdk.GyroDrift() }
-func (bm *BotManager) GetMemStats() string    { return sdk.MemStats() }
-func (bm *BotManager) GetScheduler() string   { return sdk.Scheduler() }
+func (bm *BotManager) GetSensorCal() string { return sdk.SensorCal() }
+func (bm *BotManager) GetGyroDrift() string { return sdk.GyroDrift() }
+func (bm *BotManager) GetMemStats() string  { return sdk.MemStats() }
+func (bm *BotManager) GetScheduler() string { return sdk.Scheduler() }
 
 // encryptSensor wraps SerializeBmp → AES‑CBC → RSA‑wrap (same as 3.3.x).
 func (bm *BotManager) encryptSensor(buf []byte) (string, error) {
@@ -140,4 +144,4 @@ func (bm *BotManager) encryptSensor(buf []byte) (string, error) {
 	}
 	return base64.StdEncoding.EncodeToString(wrapped) + "." +
 		base64.StdEncoding.EncodeToString(cipher), nil
-} 
+}

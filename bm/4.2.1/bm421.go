@@ -869,12 +869,20 @@ func (g *Generator) Generate(opts GenerateOpts) string {
 	if opts.CPRSignal == "" {
 		opts.CPRSignal = "0"
 	}
+	// The device id appears TWICE in a sensor: in the plaintext metadata (opts.DeviceID)
+	// and inside the encrypted -100 device fingerprint (profile.AndroidID). They must be
+	// the same value -- the payload is decrypted server-side, so a mismatch is visible.
+	// An override therefore rewrites the profile too, on a copy so the Generator's own
+	// profile is left as it was.
+	profile := g.Device
 	if opts.DeviceID == "" {
-		opts.DeviceID = g.Device.DeviceID
+		opts.DeviceID = profile.DeviceID
+	} else {
+		profile.AndroidID, profile.DeviceID = opts.DeviceID, opts.DeviceID
 	}
 
 	pairs := BuildSensorPairs(
-		g.Device, g.AppPackage, g.AppVersion, g.AppVersionCode,
+		profile, g.AppPackage, g.AppVersion, g.AppVersionCode,
 		g.ServerURL, opts.JSSignals, opts.CPRSignal,
 		opts.NumTouchTaps, opts.NumSensorEvents,
 	)
@@ -890,6 +898,46 @@ type BotManager struct {
 	androidID    string
 	challenge    bool
 	challengeURL string
+	// serverSignal is the `serversidesignal` value fetched from
+	// https://<host>/_bm/get_params?type=sdk-dci. The real SDK folds it into every
+	// sensor; leaving it empty produces a structurally weaker sensor. Set it via
+	// SetServerSignal before GenerateSensorData.
+	serverSignal string
+	// deviceIDOverride pins the device id inside the sensor so it can be made to
+	// agree with the deviceId the caller sends in its own headers.
+	deviceIDOverride string
+	// Behavioural density. The default 3 taps / 32 events is sparser than a
+	// typical real session. 0 => keep the defaults.
+	numTouchTaps    int
+	numSensorEvents int
+}
+
+// SetServerSignal sets the `serversidesignal` fetched from /_bm/get_params.
+func (bm *BotManager) SetServerSignal(sig string) { bm.serverSignal = sig }
+
+// SetDeviceID pins the sensor's device id (default: the profile's random Android ID).
+func (bm *BotManager) SetDeviceID(id string) { bm.deviceIDOverride = id }
+
+// SetAppVersion sets the host app's versionName / versionCode the sensor reports
+// (default: DefaultAppVersion / DefaultAppVersionCode, "1.0.0" / 1).
+func (bm *BotManager) SetAppVersion(name string, code int) {
+	bm.Generator.AppVersion, bm.Generator.AppVersionCode = name, code
+}
+
+// EffectiveDeviceID is the device id actually embedded in the sensor.
+func (bm *BotManager) EffectiveDeviceID() string {
+	if bm.deviceIDOverride != "" {
+		return bm.deviceIDOverride
+	}
+	return bm.androidID
+}
+
+// EffectiveAppVersion is the versionName actually embedded in the sensor.
+func (bm *BotManager) EffectiveAppVersion() string { return bm.Generator.AppVersion }
+
+// SetBehaviour sets touch-tap and sensor-event counts (0 keeps the defaults).
+func (bm *BotManager) SetBehaviour(taps, events int) {
+	bm.numTouchTaps, bm.numSensorEvents = taps, events
 }
 
 func NewStable(app string, lang string, challenge bool, challengeURL string, deviceManager dm.DeviceManager) *BotManager {
@@ -928,11 +976,23 @@ func (bm *BotManager) GetDevice() dm.Device {
 }
 
 func (bm *BotManager) GenerateSensorData() (string, error) {
+	deviceID := bm.androidID
+	if bm.deviceIDOverride != "" {
+		deviceID = bm.deviceIDOverride
+	}
+	taps, events := bm.numTouchTaps, bm.numSensorEvents
+	if taps == 0 {
+		taps = 3
+	}
+	if events == 0 {
+		events = 32
+	}
 	return bm.Generate(GenerateOpts{
 		CPRSignal:       "0",
-		DeviceID:        bm.androidID,
-		NumTouchTaps:    3,
-		NumSensorEvents: 32,
+		DeviceID:        deviceID,
+		ServerSignal:    bm.serverSignal,
+		NumTouchTaps:    taps,
+		NumSensorEvents: events,
 	}), nil
 }
 

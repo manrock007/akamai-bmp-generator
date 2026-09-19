@@ -10,9 +10,9 @@ import (
 )
 
 type Device struct {
-	AndroidID string `json:"androidId" bson:"androidId"`
-	ID     primitive.ObjectID `bson:"_id"`
-	Screen struct {
+	AndroidID string             `json:"androidId" bson:"androidId"`
+	ID        primitive.ObjectID `bson:"_id"`
+	Screen    struct {
 		HeightPixels int `bson:"heightPixels" json:"heightPixels"`
 		WidthPixels  int `bson:"widthPixels" json:"widthPixels"`
 	} `bson:"SCREEN" json:"SCREEN"`
